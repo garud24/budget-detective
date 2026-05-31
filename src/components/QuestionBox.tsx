@@ -3,7 +3,10 @@ import { useState } from "react";
 import { logAIInput } from "../services/aiLogger";
 
 type QuestionBoxProps = {
-  onQuestion: (question: string) => void;
+  onQuestion: (
+    question: string,
+    source: "question_button" | "typed_question",
+  ) => void | Promise<void>;
 };
 
 const sampleQuestions = [
@@ -16,9 +19,12 @@ const sampleQuestions = [
 export default function QuestionBox({ onQuestion }: QuestionBoxProps) {
   const [question, setQuestion] = useState("");
 
-  function submitQuestion(text: string, type: "question_button" | "typed_question") {
+  function submitQuestion(
+    text: string,
+    type: "question_button" | "typed_question",
+  ) {
     logAIInput(text, type);
-    onQuestion(text);
+    onQuestion(text, type);
     setQuestion("");
   }
 

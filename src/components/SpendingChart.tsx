@@ -17,13 +17,18 @@ type SpendingChartProps = {
 export default function SpendingChart({ data }: SpendingChartProps) {
   const shortData = data.map((item) => ({
     ...item,
-    shortName: item.name.length > 22 ? `${item.name.slice(0, 22)}...` : item.name,
+    shortName:
+      item.name.length > 22 ? `${item.name.slice(0, 22)}...` : item.name,
   }));
 
   return (
     <div className="chart-card">
       <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={shortData} layout="vertical" margin={{ left: 20, right: 20 }}>
+        <BarChart
+          data={shortData}
+          layout="vertical"
+          margin={{ left: 20, right: 20 }}
+        >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis type="number" tickFormatter={formatCurrency} />
           <YAxis
@@ -33,7 +38,12 @@ export default function SpendingChart({ data }: SpendingChartProps) {
             tick={{ fontSize: 12 }}
           />
           <Tooltip
-            formatter={(value: number) => formatCurrency(value)}
+            formatter={(value) => {
+              const numericValue =
+                typeof value === "number" ? value : Number(value || 0);
+
+              return formatCurrency(numericValue);
+            }}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.name || ""}
           />
           <Bar dataKey="value" radius={[0, 8, 8, 0]} />
