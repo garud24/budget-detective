@@ -1,73 +1,45 @@
-# React + TypeScript + Vite
+# Budget Detective
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Budget Detective is a proof-of-concept web app that helps non-technical users understand Washington State vendor payment data without writing SQL or using a traditional BI dashboard.
 
-Currently, two official plugins are available:
+## Problem
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Most non-technical users do not know how to query raw government spending data. A city councilmember, journalist, or citizen may want to know where money went, who received it, and what spending areas dominate, but the raw dataset is too large and technical to explore directly.
 
-## React Compiler
+I chose to build an automatic insight experience instead of a dashboard because non-technical users often do not know what question to ask first. The app starts by surfacing the most important spending patterns in plain English.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## What I Built
 
-## Expanding the ESLint configuration
+The app loads Washington State vendor payment CSV data and automatically generates four beginner-friendly insights:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. Where did most money go?
+2. Who received the most money?
+3. What type of spending dominates?
+4. What specific spending area stands out?
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Each insight includes:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- A plain-English answer
+- A large readable value
+- A short explanation
+- A "why this matters" note
+- A supporting chart
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Tech Stack
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- React
+- TypeScript
+- Vite
+- PapaParse for CSV loading
+- Recharts for charts
+- Lucide React for icons
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Architecture
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+```text
+CSV file
+  -> csvLoader
+  -> normalized payment rows
+  -> insightEngine
+  -> insight cards and chart data
+  -> React UI

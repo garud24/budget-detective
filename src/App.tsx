@@ -1,122 +1,181 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useMemo, useState } from "react";
+import { Building2, Database, DollarSign, Users } from "lucide-react";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+import InsightCard from "./components/InsightCard";
+import QuestionBox from "./components/QuestionBox";
+import SpendingChart from "./components/SpendingChart";
+import { loadPayments } from "./services/csvLoader";
+import {
+  formatCurrency,
+  generateInsights,
+  getTotalSpending,
+} from "./services/insightEngine";
+import type { Insight, PaymentRow } from "./types/payment";
 
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+function getMatchingInsight(question: string, insights: Insight[]): Insight {
+  const q = question.toLowerCase();
 
-      <div className="ticks"></div>
+  if (q.includes("vendor") || q.includes("received") || q.includes("paid")) {
+    return insights.find((item) => item.id === "top-vendor") || insights[0];
+  }
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+  if (q.includes("category") || q.includes("type")) {
+    return insights.find((item) => item.id === "top-category") || insights[0];
+  }
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  if (
+    q.includes("specific") ||
+    q.includes("subcategory") ||
+    q.includes("area")
+  ) {
+    return (
+      insights.find((item) => item.id === "top-subcategory") || insights[0]
+    );
+  }
+
+  return insights.find((item) => item.id === "top-agency") || insights[0];
 }
 
-export default App
+export default function App() {
+  const [rows, setRows] = useState<PaymentRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selectedInsightId, setSelectedInsightId] = useState<string>("");
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const payments = await loadPayments();
+        setRows(payments);
+      } catch (err) {
+        setError(
+          "Could not load the dataset. Check that the CSV exists in public/data.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
+  const insights = useMemo(() => generateInsights(rows), [rows]);
+  const totalSpending = useMemo(() => getTotalSpending(rows), [rows]);
+
+  const selectedInsight =
+    insights.find((item) => item.id === selectedInsightId) || insights[0];
+
+  useEffect(() => {
+    if (insights.length > 0 && !selectedInsightId) {
+      setSelectedInsightId(insights[0].id);
+    }
+  }, [insights, selectedInsightId]);
+
+  function handleQuestion(question: string) {
+    const matchedInsight = getMatchingInsight(question, insights);
+    setSelectedInsightId(matchedInsight.id);
+  }
+
+  if (loading) {
+    return (
+      <main className="page center-page">
+        <div className="loading-card">
+          <h1>Budget Detective</h1>
+          <p>Reading the spending data...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (error) {
+    return (
+      <main className="page center-page">
+        <div className="loading-card">
+          <h1>Something went wrong</h1>
+          <p>{error}</p>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="page">
+      <section className="hero">
+        <div>
+          <p className="eyebrow">Washington State Vendor Payments</p>
+          <h1>Budget Detective</h1>
+          <p className="hero-subtitle">
+            We analyzed the data first, so non-technical users can understand
+            where public money went without writing SQL or building reports.
+          </p>
+        </div>
+      </section>
+
+      <section className="summary-grid">
+        <div className="summary-card">
+          <DollarSign />
+          <div>
+            <span>Total Spending</span>
+            <strong>{formatCurrency(totalSpending)}</strong>
+          </div>
+        </div>
+
+        <div className="summary-card">
+          <Database />
+          <div>
+            <span>Payment Records</span>
+            <strong>{rows.length.toLocaleString()}</strong>
+          </div>
+        </div>
+
+        <div className="summary-card">
+          <Building2 />
+          <div>
+            <span>Top Agency</span>
+            <strong>{insights[0]?.label}</strong>
+          </div>
+        </div>
+      </section>
+
+      <QuestionBox onQuestion={handleQuestion} />
+
+      <section className="main-layout">
+        <div className="left-panel">
+          <div className="section-heading">
+            <h2>Start here</h2>
+            <p>Click a plain-English question. We already did the analysis.</p>
+          </div>
+
+          <div className="insight-list">
+            {insights.map((insight) => (
+              <InsightCard
+                key={insight.id}
+                insight={insight}
+                isSelected={selectedInsight?.id === insight.id}
+                onClick={() => setSelectedInsightId(insight.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {selectedInsight && (
+          <div className="detail-panel">
+            <p className="detail-kicker">Answer</p>
+            <h2>{selectedInsight.title}</h2>
+            <h3>{selectedInsight.label}</h3>
+            <p className="big-number">{selectedInsight.value}</p>
+            <p className="detail-text">{selectedInsight.description}</p>
+
+            <div className="why-box">
+              <strong>Why this matters</strong>
+              <p>{selectedInsight.whyItMatters}</p>
+            </div>
+
+            <SpendingChart data={selectedInsight.data} />
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
